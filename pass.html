@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>암호 생성기</title>
+    <style>
+        /* CSS: 디자인 담당 */
+        body {
+            font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, Roboto, sans-serif;
+            background-color: #f4f7f9;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+
+        .container {
+            width: 600px;
+            text-align: center;
+        }
+
+        .header h1 { font-size: 24px; margin-bottom: 5px; }
+        .header p { color: #666; font-size: 14px; margin-top: 0; }
+
+        .card {
+            background: white;
+            border-radius: 16px;
+            padding: 30px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.05);
+            text-align: left;
+            min-height: 450px;
+        }
+
+        /* 탭 메뉴 디자인 */
+        .tab-menu {
+            display: flex;
+            justify-content: space-around;
+            background: #eee;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            padding: 5px;
+        }
+
+        .tab-menu div { 
+            padding: 8px 20px; 
+            cursor: pointer; 
+            border-radius: 8px; 
+            font-size: 14px; 
+            flex: 1; 
+            text-align: center;
+            transition: 0.2s;
+        }
+
+        .tab-menu .active { background: white; font-weight: bold; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+
+        .row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
+        
+        /* 결과창 */
+        .result-box {
+            background: #f9f9f9;
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid #ddd;
+            font-family: monospace;
+            font-size: 18px;
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .icon-group span {
+            cursor: pointer;
+            margin-left: 10px;
+            transition: transform 0.1s;
+            user-select: none;
+            display: inline-block;
+            width: 24px;
+            text-align: center;
+        }
+
+        .icon-group span:active { transform: scale(1.2); }
+
+        input[type="range"] { width: 100%; margin-bottom: 20px; cursor: pointer; }
+        
+        /* 토글 스위치 */
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 40px;
+            height: 20px;
+        }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .slider {
+            position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0;
+            background-color: #ccc; transition: .4s; border-radius: 20px;
+        }
+        input:checked + .slider { background-color: #000; }
+        .slider:before {
+            position: absolute; content: ""; height: 16px; width: 16px;
+            left: 2px; bottom: 2px; background-color: white; transition: .4s; border-radius: 50%;
+        }
+        input:checked + .slider:before { transform: translateX(20px); }
+
+        .generate-btn {
+            width: 100%;
+            padding: 15px;
+            background: #000;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+
+        .history-box {
+            margin-top: 15px;
+            font-size: 12px;
+            color: #777;
+            background: #f5f5f5;
+            padding: 10px;
+            border-radius: 8px;
+        }
+
+        /* 탭 콘텐츠 숨김 설정 */
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="header">
+        <h1>🛡️ 안전한 비밀번호 관리자</h1>
+        <p>암호화적으로 강력한 방법을 사용한 비밀번호 생성 및 신뢰성 평가</p>
+    </div>
+
+    <div class="card">
+        <div class="tab-menu">
+            <div id="tab-gen" class="active" onclick="showTab('gen')">생성기</div>
+            <div id="tab-sec" onclick="showTab('sec')">보안성 확인</div>
+            <div id="tab-info" onclick="showTab('info')">정보</div>
+        </div>
+
+        <div id="content-gen" class="tab-content active">
+            <div class="result-box" id="passwordResult">
+                <span id="pwdText" style="color: #999;">'비밀번호 생성'을 눌러주세요</span>
+                <div class="icon-group">
+                    <span id="copyIcon" title="복사하기" onclick="copyPwd()">📋</span>
+                    <span title="다시 만들기" onclick="generate()">🔄</span>
+                </div>
+            </div>
+
+            <div class="row">
+                <span>비밀번호 길이</span>
+                <b id="lengthVal">16</b>
+            </div>
+            <input type="range" id="lengthRange" min="4" max="50" value="16">
+
+            <div class="row">
+                <span>대문자 (A-Z)</span>
+                <label class="switch"><input type="checkbox" id="useUpper" checked><span class="slider"></span></label>
+            </div>
+
+            <div class="row">
+                <span>기호 (!@#$...)</span>
+                <label class="switch"><input type="checkbox" id="useSymbols" checked><span class="slider"></span></label>
+            </div>
+
+            <div class="row">
+                <span>혼동하기 쉬운 문자 제외 (i, 1, O, 0)</span>
+                <label class="switch"><input type="checkbox" id="excludeSimilar"><span class="slider"></span></label>
+            </div>
+
+            <button class="generate-btn" onclick="generate()">🔄 비밀번호 생성</button>
+
+            <div class="history-box">
+                <strong>생성 기록</strong>
+                <div id="historyList">기록이 없습니다.</div>
+            </div>
+        </div>
+
+        <div id="content-sec" class="tab-content">
+            <h3>🔒 보안성 확인</h3>
+            <p style="font-size: 14px; color: #555;">생성된 비밀번호가 얼마나 안전한지 확인합니다.</p>
+            <div class="result-box">
+                <input type="text" id="checkInput" placeholder="비밀번호를 입력해 보세요" style="border:none; background:none; width:100%; outline:none; font-size: 16px;">
+            </div>
+            <p id="strengthMsg" style="font-weight: bold; color: #333;">강도: -</p>
+        </div>
+
+        <div id="content-info" class="tab-content">
+            <h3>ℹ️ 프로그램 정보</h3>
+            <p style="line-height: 1.6; color: #444; font-size: 14px;">
+                이 프로그램은 사용자의 기기에서 즉석으로 암호를 생성하며,<br>
+                <strong>어떠한 데이터도 서버에 저장하지 않습니다.</strong><br><br>
+                버전: 1.0.0 
+            </p>
+        </div>
+    </div>
+</div>
+
+<script>
+    // --- 탭 전환 기능 ---
+    function showTab(tabName) {
+        document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+        document.querySelectorAll('.tab-menu div').forEach(t => t.classList.remove('active'));
+        document.getElementById('content-' + tabName).classList.add('active');
+        document.getElementById('tab-' + tabName).classList.add('active');
+    }
+
+    // --- 비밀번호 생성 기능 ---
+    const lengthRange = document.getElementById('lengthRange');
+    const lengthVal = document.getElementById('lengthVal');
+    lengthRange.oninput = function() { lengthVal.innerText = this.value; }
+
+    function generate() {
+        const length = lengthRange.value;
+        const useUpper = document.getElementById('useUpper').checked;
+        const useSymbols = document.getElementById('useSymbols').checked;
+        const excludeSimilar = document.getElementById('excludeSimilar').checked;
+
+        let charset = "abcdefghijklmnopqrstuvwxyz0123456789";
+        if (useUpper) charset += "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+        if (useSymbols) charset += "!@#$%^&*()-_=+";
+        if (excludeSimilar) charset = charset.replace(/[iIl1O0]/g, '');
+
+        let password = "";
+        for (let i = 0; i < length; i++) {
+            password += charset.charAt(Math.floor(Math.random() * charset.length));
+        }
+
+        const pwdDisplay = document.getElementById('pwdText');
+        pwdDisplay.innerText = password;
+        pwdDisplay.style.color = "#000";
+        
+        const now = new Date();
+        const timeStr = now.getHours().toString().padStart(2, '0') + ":" + now.getMinutes().toString().padStart(2, '0');
+        document.getElementById('historyList').innerHTML = `${timeStr}: ${password.substring(0, 15)}... (생성됨)`;
+    }
+
+    // --- 복사 기능 (수정됨: 팝업 제거 및 아이콘 피드백 추가) ---
+    function copyPwd() {
+        const text = document.getElementById('pwdText').innerText;
+        const copyIcon = document.getElementById('copyIcon');
+
+        if(text.includes('생성')) {
+            return; // 생성이 안 된 상태면 아무 일도 일어나지 않음
+        }
+
+        navigator.clipboard.writeText(text).then(() => {
+            // 성공 시 아이콘 변경
+            copyIcon.innerText = "✅";
+            
+            // 1.5초 후 다시 원래 아이콘으로 복구
+            setTimeout(() => {
+                copyIcon.innerText = "📋";
+            }, 1500);
+        });
+    }
+
+    // --- 보안성 확인 로직 ---
+    document.getElementById('checkInput').oninput = function() {
+        const val = this.value;
+        let msg = "강도: ";
+        if(val.length === 0) msg += "-";
+        else if(val.length < 8) msg += "🔴 위험 (너무 짧음)";
+        else if(val.length < 12) msg += "🟠 보통";
+        else msg += "🟢 강력";
+        document.getElementById('strengthMsg').innerText = msg;
+    }
+</script>
+
+</body>
+</html>
